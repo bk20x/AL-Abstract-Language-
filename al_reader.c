@@ -101,6 +101,7 @@ AST_Node* parse_funcall_param_list(Reader* reader) {
                 result->as_param_list = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
             }
             result->as_param_list->params = params;
+            result->as_param_list->kind   = nkFuncallParamList;
             return result;
         }
 
