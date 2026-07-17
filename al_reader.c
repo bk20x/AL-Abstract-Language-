@@ -18,7 +18,7 @@ Reader* init_reader() {
     return result;
 }
 
-Reader* init_reader_from_file(const char* restrict filename) {
+Reader* init_reader_from_file(const char* filename) {
     Lexer* lexer = init_lexer_from_file(filename);
     if (!lexer) return nullptr;
 
@@ -46,6 +46,7 @@ Symbol* sym_get_if_interned_or_alloc_and_intern_it(const Reader* reader, const S
     const u64 hash = symhash(sym_view->buf, sym_view->len);
     if (!st_contains_hash(reader->interned_symbols, hash)) {
         Symbol* new_symbol = sym_new(sym_view->buf, sym_view->len);
+        new_symbol->hash = hash;
         st_put(reader->interned_symbols, new_symbol, new_symbol);
         return new_symbol;
     }
@@ -78,7 +79,7 @@ AST_Node* parse_var_declaration(Reader* reader) {
 AST_Node* parse_funcall_param_list(Reader* reader) {
     AST_Node* result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
     *result = (AST_Node) {
-        .kind          = nkParamList,
+        .kind          = nkFuncallParamList,
         .as_param_list = nullptr
     };
 

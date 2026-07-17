@@ -23,19 +23,14 @@ Symbol_Table* create_symbol_table(const size_t cap, const Hash_Function hash_fun
     return result;
 }
 
-static Symbol* set_table_entry(const Symbol_Table* tab, Symtab_Entry* entries,
-                               const size_t cap, Symbol* key, void* value,
-                               size_t* pointer_to_size)
+static Symbol* set_table_entry(Symtab_Entry* entries, Symbol* key,
+                               void* value, const size_t cap, size_t* pointer_to_size)
 {
-    if (!key) return nullptr;
-
-    const u64 hash = tab->hash_func(key->name, key->len); // only time we need to hash it is in here. see `st_gethash`
-    size_t idx = hash & (cap - 1);
+    // if (!key) return nullptr;
+    size_t idx = key->hash & (cap - 1);
 
     while (entries[idx].key != nullptr) {
-        if (entries[idx].key->len == key->len
-            && memcmp(key->name, entries[idx].key->name, key->len) == 0) {
-            entries[idx].key->hash = hash;
+        if (entries[idx].key->hash == key->hash){
             entries[idx].value = value;
             return entries[idx].key;
         }
@@ -47,7 +42,6 @@ static Symbol* set_table_entry(const Symbol_Table* tab, Symtab_Entry* entries,
         (*pointer_to_size)++;
     }
 
-    key->hash = hash;
     entries[idx].key = key;
     entries[idx].value = value;
     return key;
@@ -66,7 +60,7 @@ static bool st_expand(Symbol_Table* ht) {
     for (size_t i = 0; i < ht->cap; ++i) {
         const Symtab_Entry entry = ht->entries[i];
         if (entry.key) {
-            if (!set_table_entry(ht, new_entries, new_cap, entry.key, entry.value, &ht->size)) {
+            if (!set_table_entry(new_entries, entry.key, entry.value, new_cap, &ht->size)) {
                 dealloc(new_entries);
                 ht->size = old_size;
                 return false;
@@ -85,7 +79,7 @@ Symbol* st_put(Symbol_Table* st, Symbol* key, void* value) {
     if (st->size >= st->cap / 2) {
         if (!st_expand(st)) return nullptr;
     }
-    return set_table_entry(st, st->entries, st->cap, key, value, &st->size);
+    return set_table_entry(st->entries, key, value, st->cap, &st->size);
 }
 
 Symbol* st_get(const Symbol_Table* st, Symbol* key) {

@@ -108,7 +108,7 @@ void lex_symbol(Lexer* lexer) {
     }
     const auto sym_view = SV_SLICE(lexer->buf->chars, start, lexer->pos);
     if (memcmp(sym_view.buf, "var", 3) == 0) {
-        lexer->token = (Token){tkVar};
+        lexer->token = (Token){.kind = tkVar};
     } else {
         lexer->token = (Token){
             .kind    = tkSymbol,
@@ -179,62 +179,62 @@ void next_token(Lexer* lexer) {
     switch (lexer->buf->chars[lexer->pos]) {
         case '(': {
             advance(lexer, 1);
-            lexer->token = (Token){tkLPar};
+            lexer->token = (Token){.kind = tkLPar};
             break;
         }
         case ')': {
             advance(lexer, 1);
-            lexer->token = (Token){tkRPar};
+            lexer->token = (Token){.kind = tkRPar};
             break;
         }
         case '{': {
             advance(lexer, 1);
-            lexer->token = (Token){tkLBrace};
+            lexer->token = (Token){.kind = tkLBrace};
             break;
         }
         case '}': {
             advance(lexer, 1);
-            lexer->token = (Token){tkRBrace};
+            lexer->token = (Token){.kind = tkRBrace};
             break;
         }
         case '%': {
             advance(lexer, 1);
-            lexer->token = (Token){tkRout};
+            lexer->token = (Token){.kind = tkRout};
             break;
         }
         case '=': {
             advance(lexer, 1);
             if (lexer->pos < lexer->buf->len && lexer->buf->chars[lexer->pos] == '=') {
                 advance(lexer, 1);
-                lexer->token = (Token){tkOperator, .opr_val = OPERATOR(opEq)};
+                lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opEq)};
                 break;
             }
-            lexer->token = (Token){tkOperator, .opr_val = OPERATOR(opAssign)};
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opAssign)};
             break;
         }
         case '+': {
             advance(lexer, 1);
-            lexer->token = (Token){tkOperator, .opr_val = OPERATOR(opAdd)};
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opAdd)};
             break;
         }
         case '-': {
             advance(lexer, 1);
-            lexer->token = (Token){tkOperator, .opr_val = OPERATOR(opSub)};
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opSub)};
             break;
         }
         case '*': {
             advance(lexer, 1);
-            lexer->token = (Token){tkOperator, .opr_val = OPERATOR(opMul)};
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opMul)};
             break;
         }
         case '/': {
             advance(lexer, 1);
-            lexer->token = (Token){tkOperator, .opr_val = OPERATOR(opDiv)};
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opDiv)};
             break;
         }
         case ',': {
             advance(lexer, 1);
-            lexer->token = (Token){tkComma};
+            lexer->token = (Token){.kind = tkComma};
             break;
         }
         case '"': {
@@ -242,7 +242,7 @@ void next_token(Lexer* lexer) {
             break;
         }
         case '\0': {
-            lexer->token = (Token){tkEof};
+            lexer->token = (Token){.kind = tkEof};
             break;
         }
         default: {

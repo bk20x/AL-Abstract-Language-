@@ -8,6 +8,7 @@ typedef enum  {
     okFloat,
     okBool,
 } Al_Object_Kind;
+
 typedef struct {
     Al_Object_Kind kind;
     union {

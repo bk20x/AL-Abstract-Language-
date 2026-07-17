@@ -14,7 +14,9 @@ enum Node_Kind : u64 /*for now until we need to shove more shit on there*/ {
     nkIntLit,
     nkFloatLit,
     nkFuncall,
-    nkParamList,
+    nkFuncallParamList,
+    nkStmt,
+    nkStmtList
 };
 typedef enum Node_Kind Node_Kind;
 String* string_of_node_kind(Node_Kind);
@@ -40,6 +42,11 @@ typedef struct Funcall_Node Funcall_Node;
 struct Funcall_Node {
     AST_Node*    func_name;
     AST_Node*    func_params;
+};
+
+typedef struct Stmt_Node Stmt_Node;
+struct Expression {
+
 };
 
 struct AST_Node {
