@@ -29,7 +29,7 @@ static Symbol* set_table_entry(const Symbol_Table* tab, Symtab_Entry* entries,
 {
     if (!key) return nullptr;
 
-    const u64 hash = tab->hash_func(key->name, key->len); // only time we need to hash it is in here.
+    const u64 hash = tab->hash_func(key->name, key->len); // only time we need to hash it is in here. see `st_gethash`
     size_t idx = hash & (cap - 1);
 
     while (entries[idx].key != nullptr) {
