@@ -2,9 +2,9 @@
 
 #include <string.h>
 
-bool sv_copy_into(const String_View sv, String* str) {
+bool sv_copy_into_str(const String_View sv, String* str) {
     if (!str || str->cap < sv.len) return false;
-    SV_UNSAFE_COPY_INTO(sv, str);
+    SV_UNSAFE_COPY_INTO_STR(sv, str);
     return true;
 }
 

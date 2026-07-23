@@ -41,25 +41,6 @@ String* str_of_cstr(const char* cstr) {
     return result;
 }
 
-void str_init_of_cap(String* restrict str, const size_t cap) {
-    str->cap   = cap;
-    str->len   = 0;
-    str->chars = alloc(cap);
-    assert(str->chars || cap == 0);
-}
-
-void str_init_of_cstr(String* restrict str, const char* restrict cstr) {
-    const size_t len = strlen(cstr);
-
-    str->len   = len;
-    str->cap   = len;
-    str->chars = alloc(len);
-
-    assert(str->chars || len == 0);
-    if (len > 0) memcpy(str->chars, cstr, len);
-}
-
-
 String* str_byteslice(const char* restrict buf, const size_t low, const size_t high) {
     assert(high >= low && buf);
 
@@ -92,7 +73,7 @@ s64 str_append_cstr(String* restrict str, const char* cstr) {
     return (s64)str->len;
 }
 
-s64 str_append_bytes(String* restrict str, const char* bytes, const size_t n_bytes) {
+s64 str_append_bytes_unsafe(String* restrict str, const char* bytes, const size_t n_bytes) {
     if (!str || !bytes) return -1;
 
     const size_t min_cap = str->len + n_bytes;

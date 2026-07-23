@@ -12,18 +12,16 @@ typedef struct {
 } Reader;
 /* Constructor Division */
 Reader*     init_reader();
-Reader*     init_reader_from_file(const char*);
+Reader*     init_reader_from_file(cstring);
 /* Destructor Division */
 void        deinit_reader(Reader*);
+
+void prime_reader_from_file(Reader*, cstring);
+
 /* [Parsing] Operations Division */
 AST_Node*   read(Reader*);
-AST_Node*   parse_funcall_param_list(Reader*);
-AST_Node*   parse_infix_expression(Reader*);
-AST_Node*   parse_var_declaration(Reader*);
-AST_Node*   parse_funcall(Reader*);
-
 
 /* Symbol Operations Division */
-Symbol* sym_get_if_interned_or_alloc_and_intern_it(const Reader*, const String_View*);
+Symbol* get_symbol_if_interned_or_alloc_and_intern_it(const Reader*, const String_View*);
 
 #endif //ALD_AL_PARSER_H

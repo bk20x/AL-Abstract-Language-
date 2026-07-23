@@ -39,6 +39,9 @@ add_executable(ALD main.c
         al_object.h
         al_objtab.c
         al_objtab.h
-        al_assert.h)
+        al_assert.h
+        al_range.c
+        al_range.h)
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address,undefined")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")

@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "al_cdefs.h"
+
 static Mem_Chunk* init_chunk(const Elastic_Fixed_Size_Pool* pool) {
     const size_t storage_bytes_of_chunk = pool->elements_per_chunk * pool->element_size;
     const size_t size_bytes_of_chunk    = sizeof(Mem_Chunk) + storage_bytes_of_chunk;
@@ -56,7 +58,7 @@ void* alloc_from_elastic_fixed_size_pool(Elastic_Fixed_Size_Pool* restrict pool)
 
     if (!this_chunk) {
         this_chunk = init_chunk(pool);
-        standard_assert(this_chunk); // REMOVE LATER BK; debug
+        standard_assert(this_chunk);
         this_chunk->occupied_slots = 0;
 
         // push
@@ -110,14 +112,18 @@ void destroy_elastic_fixed_size_pool(Elastic_Fixed_Size_Pool* pool) {
 }
 
 void destroy_elastic_fixed_size_pool_with_dtor(Elastic_Fixed_Size_Pool* pool, const EFSPDestructor destroy) {
+    if (!pool) return;
+
     Mem_Chunk* current = pool->top;
     const size_t total_bytes = sizeof(Mem_Chunk) + pool->chunk_size;
 
-    while (current != NULL) {
-        for (size_t i = 0; i < current->occupied_slots; i++) {
-            const size_t offset = i * pool->element_size;
-            void* element = current->storage + offset;
-            destroy(element);
+    while (current != nullptr) {
+        if (destroy != nullptr) {
+            for (size_t i = 0; i < current->occupied_slots; i++) {
+                const size_t offset = i * pool->element_size;
+                void* element = (uchar*)current->storage + offset;
+                destroy(element);
+            }
         }
         Mem_Chunk* next_chunk = current->next;
         munmap(current, total_bytes);

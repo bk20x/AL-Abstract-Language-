@@ -6,14 +6,13 @@
 
 #include "al_alloc.h"
 
-Symbol_Table* create_symbol_table(const size_t cap, const Hash_Function hash_func) {
+Symbol_Table* create_symbol_table(const size_t cap) {
     Symbol_Table* result = new(Symbol_Table);
     if (!result) return nullptr;
 
     result->cap       = cap;
     result->size      = 0;
     result->entries   = calloc(cap, sizeof(Symtab_Entry));
-    result->hash_func = hash_func;
 
     if (!result->entries) {
         dealloc(result);
@@ -26,14 +25,17 @@ Symbol_Table* create_symbol_table(const size_t cap, const Hash_Function hash_fun
 static Symbol* set_table_entry(Symtab_Entry* entries, Symbol* key,
                                void* value, const size_t cap, size_t* pointer_to_size)
 {
-    // if (!key) return nullptr;
     size_t idx = key->hash & (cap - 1);
 
     while (entries[idx].key != nullptr) {
-        if (entries[idx].key->hash == key->hash){
+        Symbol* stored = entries[idx].key;
+        if (stored->hash == key->hash &&
+            stored->len  == key->len &&
+            memcmp(stored->name, key->name, key->len) == 0) {
+
             entries[idx].value = value;
-            return entries[idx].key;
-        }
+            return stored;
+            }
         idx++;
         if (idx >= cap) idx = 0;
     }

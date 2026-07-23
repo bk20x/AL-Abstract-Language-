@@ -1,11 +1,11 @@
 #include <string.h>
-#include "al_lexer.h"
-
+#include <stdlib.h>
 #include <assert.h>
-
+#include "al_lexer.h"
 #include "al_alloc.h"
 #include "al_charutils.h"
 #include "al_fileutils.h"
+
 
 Lexer* init_lexer() {
     Lexer* result = alloc(sizeof(Lexer));
@@ -14,7 +14,7 @@ Lexer* init_lexer() {
         .col   = 1,
         .line  = 1,
         .pos   = 0,
-        .token = {tkEof}
+        .token = {.kind = tkEof}
     };
     assert(result);
     return result;
@@ -27,16 +27,13 @@ void prime_lexer_from_string(Lexer* lexer, String* str) {
         .col   = 1,
         .line  = 1,
         .pos   = 0,
-        .token = {tkEof}
+        .token = {.kind = tkEof}
     };
 }
 
 Lexer* init_lexer_from_file(const char* filename) {
     String* file_contents = read_entire_file(filename);
     if (!file_contents) return nullptr;
-
-    str_ensure_cap(file_contents, file_contents->len+1);
-    file_contents->chars[file_contents->len] = '\0'; // sentinel for lexer, `String` isn't null terminated
 
     Lexer* result = alloc(sizeof(Lexer));
     assert(result);
@@ -51,26 +48,28 @@ Lexer* init_lexer_from_file(const char* filename) {
     return result;
 }
 
-bool prime_lexer_from_file(Lexer* lexer, const char* filename) {
-    if (!lexer || !lexer->buf) return false;
-    str_free(lexer->buf);
+void prime_lexer_from_file(Lexer* lexer, const char* filename) {
+    if (lexer->buf != nullptr) {
+        str_free(lexer->buf);
+        lexer->buf = nullptr;
+    }
 
     String* file_contents = read_entire_file(filename);
-    if (!file_contents) return false;
-
-    str_ensure_cap(file_contents, file_contents->len+1);
-    file_contents->chars[file_contents->len] = '\0';
+    if (!file_contents) {
+        printf("Couldnt read file %s\n", filename);
+        exit(EXIT_FAILURE);
+    }
 
     lexer->buf   = file_contents;
     lexer->line  = 1;
     lexer->col   = 1;
     lexer->pos   = 0;
-    lexer->token = (Token){tkEof};
-    return true;
+    lexer->token = (Token){.kind = tkEof};
 }
 
+
 void deinit_lexer(Lexer* lexer) {
-    str_free(lexer->buf);
+    if (lexer->buf) str_free(lexer->buf);
     dealloc(lexer);
 }
 
@@ -101,20 +100,39 @@ void skip_whitespace(Lexer* lexer) {
 
 void lex_symbol(Lexer* lexer) {
     const size_t start = lexer->pos;
-    char c = lexer->buf->chars[lexer->pos];
-    while (lexer->pos < lexer->buf->len && (IS_IDENT_START(c) || IS_ASCII_DIGIT(c))) {
+    const size_t buflen = lexer->buf->len;
+
+    while (lexer->pos < buflen &&
+          (IS_IDENT_START(lexer->buf->chars[lexer->pos])
+          || IS_ASCII_DIGIT(lexer->buf->chars[lexer->pos]))) {
         advance(lexer, 1);
-        c = lexer->buf->chars[lexer->pos];
     }
+
     const auto sym_view = SV_SLICE(lexer->buf->chars, start, lexer->pos);
-    if (memcmp(sym_view.buf, "var", 3) == 0) {
+    const size_t len = lexer->pos - start;
+
+    if (len == 3 && memcmp(sym_view.buf, "var", len) == 0) {
         lexer->token = (Token){.kind = tkVar};
+    } else if (len == 2 && memcmp(sym_view.buf, "if", len) == 0) {
+        lexer->token = (Token){.kind = tkIf};
+    } else if (len == 4 && memcmp(sym_view.buf, "else", len) == 0) {
+        lexer->token = (Token){.kind = tkElse};
+    } else if (len == 2 && memcmp(sym_view.buf, "in", len) == 0) {
+        lexer->token = (Token){
+            .kind    = tkOperator,
+            .opr_val = OPERATOR(opIn)
+        };
+    } else if (len == 3 && memcmp(sym_view.buf, "for", len) == 0) {
+        lexer->token = (Token){.kind = tkFor};
+    } else if (len == 4 && memcmp(sym_view.buf, "true", len) == 0) {
+        lexer->token = (Token){.kind = tkBoolLit, .bool_lit_val = true};
+    } else if (len == 5 && memcmp(sym_view.buf, "false", len) == 0) {
+        lexer->token = (Token){.kind = tkBoolLit, .bool_lit_val = false};
     } else {
         lexer->token = (Token){
-            .kind    = tkSymbol,
+            .kind     = tkSymbol,
             .view_val = sym_view
         };
-        return;
     }
 }
 
@@ -146,36 +164,73 @@ void lex_string(Lexer* lexer) {
 }
 
 void lex_number(Lexer* lexer) {
-    bool floating = false;
     const size_t buflen = lexer->buf->len;
-    const char*  start_addr  = &lexer->buf->chars[lexer->pos];
-    while (lexer->pos < buflen) {
-        const char c = lexer->buf->chars[lexer->pos];
-        if (IS_ASCII_DIGIT(c)) {
-            advance(lexer, 1);
-        } else if (!floating && c == '.') {
-            if (lexer->pos+1 < buflen && IS_ASCII_DIGIT(lexer->buf->chars[lexer->pos+1])) {
-                floating = true;
-                advance(lexer, 1);
-            } else break;
-        } else break;
+    size_t start_pos = lexer->pos;
+    bool is_negative = false;
+    // sign?
+    if (lexer->pos < buflen && lexer->buf->chars[lexer->pos] == '-') {
+        is_negative = true;
+        advance(lexer, 1);
     }
+    while (lexer->pos < buflen && IS_ASCII_DIGIT(lexer->buf->chars[lexer->pos])) {
+        advance(lexer, 1);
+    }
+    bool floating = false;
+    if (lexer->pos < buflen && lexer->buf->chars[lexer->pos] == '.') {
+        if (lexer->pos + 1 < buflen && IS_ASCII_DIGIT(lexer->buf->chars[lexer->pos + 1])) {
+            floating = true;
+            advance(lexer, 1); // eat '.'
+            while (lexer->pos < buflen && IS_ASCII_DIGIT(lexer->buf->chars[lexer->pos])) {
+                advance(lexer, 1);
+            }
+        }
+    }
+
+    size_t token_len = lexer->pos - start_pos;
     if (floating) {
+        char tmp[64]; // this is stupid and im changing it later
+        if (token_len >= sizeof(tmp)) {
+            token_len = sizeof(tmp) - 1;
+        }
+        memcpy(tmp, &lexer->buf->chars[start_pos], token_len);
+        tmp[token_len] = '\0';
+
         lexer->token = (Token) {
             .kind    = tkFloat,
-            .flt_val = strtof(start_addr, nullptr)
+            .flt_val = strtof(tmp, nullptr)
         };
     } else {
+        s64 value = 0;
+        size_t i = start_pos;
+
+        if (is_negative) {
+            i++;
+        }
+
+        while (i < lexer->pos) {
+            value = (value * 10) + (lexer->buf->chars[i] - '0');
+            i++;
+        }
+
+        if (is_negative) {
+            value = -value;
+        }
+
         lexer->token = (Token) {
             .kind    = tkInt,
-            .int_val = strtoll(start_addr, nullptr, 10)
+            .int_val = value
         };
     }
 }
 
+
 void next_token(Lexer* lexer) {
     skip_whitespace(lexer);
     lexer->last_token = lexer->token;
+    if (lexer->pos >= lexer->buf->len) {
+        lexer->token = (Token){.kind = tkEof};
+        return;
+    }
     switch (lexer->buf->chars[lexer->pos]) {
         case '(': {
             advance(lexer, 1);
@@ -202,6 +257,16 @@ void next_token(Lexer* lexer) {
             lexer->token = (Token){.kind = tkRout};
             break;
         }
+        case '>': {
+            advance(lexer, 1);
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opGThan)};
+            break;
+        }
+        case '<': {
+            advance(lexer, 1);
+            lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opLThan)};
+            break;
+        }
         case '=': {
             advance(lexer, 1);
             if (lexer->pos < lexer->buf->len && lexer->buf->chars[lexer->pos] == '=') {
@@ -218,10 +283,28 @@ void next_token(Lexer* lexer) {
             break;
         }
         case '-': {
+            const bool is_probably_infix_operator = (
+                lexer->token.kind == tkInt    ||
+                lexer->token.kind == tkFloat  ||
+                lexer->token.kind == tkSymbol ||
+                lexer->token.kind == tkRPar   ||
+                lexer->token.kind == tkRBrace ||
+                lexer->token.kind == tkString ||
+                lexer->token.kind == tkChar
+            );
+
+            // for them mf negatives
+            if (!is_probably_infix_operator && lexer->pos + 1 < lexer->buf->len && IS_ASCII_DIGIT(lexer->buf->chars[lexer->pos + 1])) {
+                lex_number(lexer);
+                break;
+            }
+
             advance(lexer, 1);
             lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opSub)};
             break;
         }
+
+
         case '*': {
             advance(lexer, 1);
             lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opMul)};
@@ -237,12 +320,71 @@ void next_token(Lexer* lexer) {
             lexer->token = (Token){.kind = tkComma};
             break;
         }
+        case '.': {
+            advance(lexer, 1); // eat `.`
+            if (lexer->pos < lexer->buf->len && lexer->buf->chars[lexer->pos] == '.') {
+                advance(lexer, 1); // eat `.` OH MT GOD ITS A RANGE!!!
+                lexer->token = (Token){
+                    .kind = tkOperator,
+                    .opr_val = OPERATOR(opRange)
+                };
+                break;
+            }
+            fprintf(stderr, "Lexer Error: Unexpected single dot character.\n");
+            exit(EXIT_FAILURE);
+        }
         case '"': {
             lex_string(lexer);
             break;
         }
-        case '\0': {
-            lexer->token = (Token){.kind = tkEof};
+        case '\'': {
+            advance(lexer, 1);
+
+            // early EOF or empty chr lit ?
+            if (lexer->pos >= lexer->buf->len || lexer->buf->chars[lexer->pos] == '\'') {
+                fprintf(stderr, "Lexer Error: Empty or invalid character literal.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            char literal_char = '\0';
+
+            // is esc seq?
+            if (lexer->buf->chars[lexer->pos] == '\\') {
+                advance(lexer, 1); // eat `\`
+
+                if (lexer->pos >= lexer->buf->len) {
+                    fprintf(stderr, "Lexer Error: Unexpected EOF inside escape sequence.\n");
+                    exit(EXIT_FAILURE);
+                }
+                switch (lexer->buf->chars[lexer->pos]) {
+                    case 'n':  literal_char = '\n'; break;
+                    case 't':  literal_char = '\t'; break;
+                    case 'r':  literal_char = '\r'; break;
+                    case '\\': literal_char = '\\'; break;
+                    case '\'': literal_char = '\''; break;
+                    case '"':  literal_char = '"';  break;
+                    case '0':  literal_char = '\0'; break;
+                    default: {
+                        fprintf(stderr, "Lexer Error: Unknown escape sequence '\\%c'.\n",
+                                lexer->buf->chars[lexer->pos]);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                advance(lexer, 1);
+            } else {
+                literal_char = lexer->buf->chars[lexer->pos];
+                advance(lexer, 1);
+            }
+
+            if (lexer->pos >= lexer->buf->len || lexer->buf->chars[lexer->pos] != '\'') {
+                fprintf(stderr, "Lexer Error: Unclosed character literal.\n");
+                exit(EXIT_FAILURE);
+            }
+            advance(lexer, 1); // eat `'`
+            lexer->token = (Token){
+                .kind = tkChar,
+                .chr_val = literal_char
+            };
             break;
         }
         default: {

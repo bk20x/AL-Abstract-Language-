@@ -21,12 +21,35 @@ Vector* vec_new_of_cap(const size_t cap) {
     *result = (Vector){
         .cap  = cap,
         .len  = 0,
-        .data = alloc(sizeof(void*) * cap)
+        .data = calloc(cap, sizeof(void*))
     };
     assert(result->data);
     return result;
 }
+/* Destructor Division */
+void vec_destroy(Vector* vec) {
+    for (size_t i = 0; i < vec->len; i++) {
+        dealloc(vec->data[i]);
+    }
+    dealloc(vec->data);
+    dealloc(vec);
+    vec = nullptr;
+}
 
+void vec_destroy_with_dtor(Vector* vec, const Free_Function dtor) {
+    for (size_t i = 0; i < vec->len; i++) {
+        dtor(vec->data[i]);
+    }
+    dealloc(vec->data);
+    dealloc(vec);
+    vec = nullptr;
+}
+
+void vec_destroy_if_elements_are_pooled(Vector* vec) {
+    dealloc(vec->data);
+    dealloc(vec);
+    vec = nullptr;
+}
 /* Operations Division */
 s64 vec_append(Vector* restrict vec, void* element) {
     if (!vec || !element) return AL_VEC_OP_FAILURE;

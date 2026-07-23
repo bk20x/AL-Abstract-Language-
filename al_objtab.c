@@ -1,6 +1,7 @@
 #include "al_objtab.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include "al_alloc.h"
 
@@ -17,18 +18,22 @@ Object_Table* create_object_table(const size_t cap) {
 
 
 static Al_Object* set_table_entry(Objtab_Entry* entries,
-                                  const size_t cap,
                                   Symbol* key, void* value,
-                                  size_t* pointer_to_size)
+                                  const size_t cap, size_t* restrict pointer_to_size)
 {
     const u64 hash = key->hash;
     size_t idx = hash & (cap - 1);
 
     while (entries[idx].key != nullptr) {
-        if (entries[idx].key->hash == key->hash) {
-            entries[idx].value = value;
-            return entries[idx].value;
-        }
+        if (entries[idx].key->hash == key->hash &&
+            entries[idx].key->len  == key->len  &&
+            memcmp(entries[idx].key->name, key->name, key->len) == 0) {
+                if (entries[idx].value != nullptr) {
+                    obj_release(entries[idx].value);
+                }
+                entries[idx].value = value;
+                return entries[idx].value;
+            }
         idx++;
         if (idx >= cap) idx = 0;
     }
@@ -55,7 +60,7 @@ static bool ot_expand(Object_Table* ot) {
     for (size_t i = 0; i < ot->cap; ++i) {
         const Objtab_Entry entry = ot->entries[i];
         if (entry.key) {
-            if (!set_table_entry(new_entries, new_cap, entry.key, entry.value, &ot->size)) {
+            if (!set_table_entry(new_entries, entry.key, entry.value, new_cap, &ot->size)) {
                 dealloc(new_entries);
                 ot->size = old_size;
                 return false;
@@ -75,7 +80,7 @@ Al_Object* ot_put(Object_Table* ot, Symbol* key, Al_Object* obj) {
     if (ot->size >= ot->cap / 2) {
         if (!ot_expand(ot)) return nullptr;
     }
-    return set_table_entry(ot->entries, ot->cap, key, obj, &ot->size);
+    return set_table_entry(ot->entries, key, obj, ot->cap, &ot->size);
 }
 
 Al_Object* ot_get(const Object_Table* restrict ot, const Symbol* restrict key) {
@@ -98,8 +103,15 @@ Al_Object* ot_get(const Object_Table* restrict ot, const Symbol* restrict key) {
 void ot_destroy(Object_Table* restrict ot) {
     assert(ot);
     for (size_t i = 0; i < ot->cap; i++) {
-        // the reader holds the symbol keys so we don't gotta free them here
-        if (ot->entries[i].value) destroy_object(ot->entries[i].value);
+        Al_Object* val = ot->entries[i].value;
+        if (val != nullptr) {
+            if (val->ref_count == 0) {
+                ot->entries[i].value = nullptr;
+                continue;
+            }
+            obj_release(val);
+            ot->entries[i].value = nullptr;
+        }
     }
     dealloc(ot->entries);
     dealloc(ot);

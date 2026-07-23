@@ -1,14 +1,15 @@
 #ifndef ELASTIC_FIXED_SIZE_POOL_LIBRARY_H
 #define ELASTIC_FIXED_SIZE_POOL_LIBRARY_H
 #include <stddef.h>
+#include "al_cdefs.h"
 
 typedef void (*EFSPDestructor)(void* element);
 typedef struct Mem_Chunk Mem_Chunk;
 typedef struct Elastic_Fixed_Size_Pool Elastic_Fixed_Size_Pool;
 struct Mem_Chunk {
-    Mem_Chunk*     next;
-    size_t         occupied_slots;
-    unsigned char  storage[];
+    Mem_Chunk* next;
+    size_t     occupied_slots;
+    uchar      storage[];
 };
 void* mem_chunk_elt(const Mem_Chunk*               restrict chunk,
                     const Elastic_Fixed_Size_Pool* restrict owning_pool,

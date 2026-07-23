@@ -13,29 +13,33 @@ typedef enum : u64 {
     tkRout,     // `%`
     tkComma,    // `,`
     tkVar,      // `var`
+    tkIf,       // `if`
+    tkElse,     // `else`
+    tkFor,      // `for`
     tkOperator, // generic Token kind for all operators
     tkInt,
     tkFloat,
     tkSymbol,
     tkString,
+    tkChar,
     tkEof,
-    tkError
+    tkError,
+    tkBoolLit // `true` and `false`
 } Token_Kind;
 
 typedef enum : u32 {
-/*---Special Operators---*/
     opAssign,  // `=`
-/*---Comparators-----*/
     opEq,      // `==`
     opGThan,   // `>`
     opGThanEq, // `>=`
     opLThan,   // `<`
     opLThanEq, // `<=`
-/*---Arithmetic------*/
+    opIn,      // `in`
+    opRange,   // `..`
     opSub,     // `-`
     opAdd,     // `+`
     opMul,     // `*`
-    opDiv      // `/`
+    opDiv,     // `/`
 } Operator_Kind;
 
 static constexpr u32 Operator_Precedences[] = {
@@ -45,10 +49,12 @@ static constexpr u32 Operator_Precedences[] = {
     [opGThanEq] = 1,
     [opLThan]   = 1,
     [opLThanEq] = 1,
-    [opSub]     = 2,
-    [opAdd]     = 2,
-    [opMul]     = 3,
-    [opDiv]     = 3
+    [opIn]      = 1,
+    [opRange]   = 2,
+    [opSub]     = 3,
+    [opAdd]     = 3,
+    [opMul]     = 4,
+    [opDiv]     = 4
 };
 
 typedef struct {
@@ -76,6 +82,8 @@ typedef struct {
         Operator_Record opr_val;
         s64             int_val;
         float           flt_val;
+        char            chr_val;
+        bool            bool_lit_val;
     };
 } Token;
 
@@ -92,7 +100,7 @@ typedef struct {
 Lexer* init_lexer();
 Lexer* init_lexer_from_file(const char*);
 void   prime_lexer_from_string(Lexer*, String*);
-bool   prime_lexer_from_file(Lexer*, const char*);
+void   prime_lexer_from_file(Lexer*, const char*);
 
 /* Destructor Division */
 void   deinit_lexer(Lexer*);

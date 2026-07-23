@@ -12,25 +12,29 @@ typedef struct {
 /* Constructor Division */
 String* str_of_cap(size_t);
 String* str_of_cstr(const char*);
-// for mem i already own
-void str_init_of_cap(String*,  size_t cap);
-void str_init_of_cstr(String*, const char* cstr);
+String* str_byteslice(const char*, size_t low, size_t high);
+
+/* Destructor Division */
+void str_free(String*);
 
 /* Operations Division */
-/* All s64 return -1 on failure, otherwise they return the new length of `str`
- * `str_append_bytes` does NOT check the length of argument `bytes` and is unsafe. it's up to you to ensure `n_bytes` is correct */
+// All s64 return -1 on failure, otherwise they return the new length of `str`
 s64  str_append_cstr(String* str, const char* cstr);
-s64  str_append_bytes(String* str, const char* bytes, size_t n_bytes);
 s64  str_appendf(String* str, const char* format, ...);
 void str_ensure_cap(String*, size_t needed_capacity);
-/* [Writing] Operations Division */
+
+/* Operations Division [Writing/Printing] */
 void    str_writen(const String*, FILE*, size_t n);
 void    str_write(const String*, FILE*);
 void    str_print(const String*);
 void    str_println(const String* str);
-void    str_free(String*);
 
-// Extra stuff
-String* str_byteslice(const char*, size_t low, size_t high);
+/* Operations Division [UNSAFE] */
+s64     str_append_bytes_unsafe(String* str, const char* bytes, size_t n_bytes); // does NOT check the length of argument `bytes`; it's up to you to ensure `n_bytes` is correct
+
+
+
+
+
 
 #endif //ALD_AL_STRING_H

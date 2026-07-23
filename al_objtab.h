@@ -14,10 +14,11 @@ struct Object_Table {
     size_t        cap;
     size_t        size;
 };
-
+/* Constructor Division */
 Object_Table* create_object_table(size_t);
+/* Destructor Division */
+void          ot_destroy(Object_Table*);
+/* Operations Division */
 Al_Object*    ot_put(Object_Table*, Symbol*, Al_Object*);
 Al_Object*    ot_get(const Object_Table*, const Symbol*);
-
-void          ot_destroy(Object_Table*);
 #endif //ALD_AL_OBJTAB_H

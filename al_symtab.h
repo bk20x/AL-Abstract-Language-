@@ -10,17 +10,16 @@ typedef uint64_t(*Hash_Function)(const char*, size_t len);
 
 typedef struct {
     Symbol* key;
-    void*   value;
+    Symbol* value;
 } Symtab_Entry;
 
 typedef struct {
     Symtab_Entry*   entries;
-    Hash_Function   hash_func;
     size_t cap;
     size_t size;
 } Symbol_Table;
 
-Symbol_Table* create_symbol_table(size_t cap, Hash_Function hash_func);
+Symbol_Table* create_symbol_table(size_t cap);
 Symbol* st_put(Symbol_Table* st, Symbol* key, void* value);
 Symbol* st_get(const Symbol_Table* st, Symbol* key);
 Symbol* st_gethash(const Symbol_Table* st, u64 hash);

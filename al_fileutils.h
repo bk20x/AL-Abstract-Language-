@@ -5,6 +5,7 @@
 #define fmRead "r"
 
 String*  read_entire_file(const char*);
+String*  read_entire_file_s(String*);
 Vector*  read_entire_file_lines(const char*);
 
 #endif //ALD_FILEUTILS_H

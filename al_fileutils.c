@@ -15,13 +15,35 @@ String* read_entire_file(const char* filename) {
     char    buf[CHUNK_SIZE];
     size_t  bytes_read;
     while ((bytes_read = fread(buf, 1, CHUNK_SIZE, f)) != 0) {
-        str_append_bytes(result, buf, bytes_read);
+        str_append_bytes_unsafe(result, buf, bytes_read);
     }
 
     fclose(f);
     return result;
 }
 
+String* read_entire_file_s(String* filename) {
+    #define CHUNK_SIZE 1024
+    constexpr char NUL = '\0';
+    str_append_bytes_unsafe(filename, &NUL, 1);
+    FILE* f = fopen(filename->chars, fmRead);
+    if (!f) return nullptr;
+
+    String* result = str_of_cap(1028);
+    if (!result) {
+        fclose(f);
+        return nullptr;
+    }
+
+    char    buf[CHUNK_SIZE];
+    size_t  bytes_read;
+    while ((bytes_read = fread(buf, 1, CHUNK_SIZE, f)) != 0) {
+        str_append_bytes_unsafe(result, buf, bytes_read);
+    }
+
+    fclose(f);
+    return result;
+}
 
 
 Vector* read_entire_file_lines(const char* restrict filename) {
@@ -44,7 +66,7 @@ Vector* read_entire_file_lines(const char* restrict filename) {
 
             if (line_len > 0 || i < len) {
                 String* line = str_of_cap(line_len);
-                str_append_bytes(line, &data[start], line_len);
+                str_append_bytes_unsafe(line, &data[start], line_len);
 
                 if (line) {
                     vec_append(lines, line);
