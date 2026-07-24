@@ -12,6 +12,7 @@ typedef struct {
 /* Constructor Division */
 Vector* vec_new();
 Vector* vec_new_of_cap(size_t);
+Vector* vec_new_of_cap0(size_t); // all initialized to 0
 /* Destructor Division */
 void vec_destroy(Vector*);
 void vec_destroy_with_dtor(Vector*, Free_Function);

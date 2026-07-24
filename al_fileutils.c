@@ -1,7 +1,7 @@
 #include "al_fileutils.h"
 
 String* read_entire_file(const char* filename) {
-    #define CHUNK_SIZE 1024
+#define CHUNK_SIZE 1024
 
     FILE* f = fopen(filename, fmRead);
     if (!f) return nullptr;
@@ -17,13 +17,13 @@ String* read_entire_file(const char* filename) {
     while ((bytes_read = fread(buf, 1, CHUNK_SIZE, f)) != 0) {
         str_append_bytes_unsafe(result, buf, bytes_read);
     }
-
     fclose(f);
     return result;
+#undef CHUNK_SIZE
 }
 
 String* read_entire_file_s(String* filename) {
-    #define CHUNK_SIZE 1024
+#define CHUNK_SIZE 1024
     constexpr char NUL = '\0';
     str_append_bytes_unsafe(filename, &NUL, 1);
     FILE* f = fopen(filename->chars, fmRead);
@@ -40,26 +40,20 @@ String* read_entire_file_s(String* filename) {
     while ((bytes_read = fread(buf, 1, CHUNK_SIZE, f)) != 0) {
         str_append_bytes_unsafe(result, buf, bytes_read);
     }
-
     fclose(f);
     return result;
+#undef CHUNK_SIZE
 }
 
 
-Vector* read_entire_file_lines(const char* restrict filename) {
+Vector* read_entire_file_lines(const char* filename) {
     String* file_content = read_entire_file(filename);
     if (!file_content) return nullptr;
 
     Vector* lines = vec_new_of_cap(64);
-    if (!lines) {
-        str_free(file_content);
-        return nullptr;
-    }
-
-    #define data file_content->chars
-    #define len  file_content->len
+    const char* const data = file_content->chars;
+    const size_t len       = file_content->len;
     size_t start = 0;
-
     for (size_t i = 0; i <= len; i++) {
         if (i == len || data[i] == '\n' || data[i] == '\r') {
             const size_t line_len = i - start;

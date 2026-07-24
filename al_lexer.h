@@ -16,7 +16,8 @@ typedef enum : u64 {
     tkIf,       // `if`
     tkElse,     // `else`
     tkFor,      // `for`
-    tkOperator, // generic Token kind for all operators
+    tkDot,      // `.`
+    tkOperator,
     tkInt,
     tkFloat,
     tkSymbol,

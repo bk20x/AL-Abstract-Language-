@@ -19,7 +19,8 @@ typedef enum : u32 {
     okBuiltin,
     okStruct,
     okRange,
-    okVector
+    okVector,
+    okEnvironment
 } Al_Object_Kind;
 String* string_of_object_kind(Al_Object_Kind);
 
@@ -67,6 +68,7 @@ struct Al_Object {
     union {
         Al_Range_Object     as_range;
         Al_Builtin_Object   as_builtin;
+        Environment*        as_env;
         Al_Routine*         as_function;
         Vector*             as_vector;
         String*             as_string;

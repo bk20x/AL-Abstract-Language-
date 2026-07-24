@@ -115,7 +115,7 @@ static Al_Object* bmakevec(Eval_Runtime* eval, Environment* scope, AST_Node* res
     const Vector* params = args->as_param_list;
     Vector* result_vec;
     if (params && params->len >= 1) {
-        result_vec = vec_new_of_cap(params->len);
+        result_vec = vec_new_of_cap0(params->len);
         vforeach(AST_Node, params, expr) {
             Al_Object* elt = eval_ast_in(eval, scope, expr);
             vec_append_unsafe(result_vec, elt);
@@ -164,8 +164,6 @@ static Al_Object* baset(Eval_Runtime* eval, Environment* scope, AST_Node* args) 
     const s64 index = idx_obj->as_int;
     Al_Object* old_val = vec_obj->as_vector->data[index];
     vec_obj->as_vector->data[index] = val_obj;
-    vec_obj->as_vector->len++;
-
     if (old_val != nullptr) {
         obj_release(old_val);
     }
@@ -315,7 +313,7 @@ static Al_Object* barrayOfCap(Eval_Runtime* eval, Environment* scope, AST_Node* 
 
     Al_Object* result = new(Al_Object);
     result->kind      = okVector;
-    result->as_vector = vec_new_of_cap(cap_obj->as_int);
+    result->as_vector = vec_new_of_cap0(cap_obj->as_int);
     result->ref_count = 1;
 
     obj_release(cap_obj);
@@ -344,6 +342,7 @@ static Al_Object* bslurpfile(Eval_Runtime* eval, Environment* scope, AST_Node* a
     return result;
 }
 
+
 static Al_Object* bstrcopy(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
     const Vector* params = args->as_param_list;
     assert(params && params->len == 1 && "`strcopy` expects one argument");
@@ -358,6 +357,67 @@ static Al_Object* bstrcopy(Eval_Runtime* eval, Environment* scope, AST_Node* arg
     obj_release(obj);
     return result;
 }
+static Al_Object* bsplitlines(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
+    const Vector* params = args->as_param_list;
+    assert(params && params->len == 1 && "`splitLines` expects one argument");
+    AST_Node* p1 = params->data[0];
+    Al_Object* str_obj = eval_ast_in(eval, scope, p1);
+    assert(str_obj->kind == okString && "`splitLines` requires its argument to be of type String");
+
+    auto result  = new(Al_Object);
+    result->kind = okVector;
+    result->ref_count = 1;
+    result->as_vector = vec_new_of_cap0(64);
+
+    const size_t len  = str_obj->as_string->len;
+    const char* chars = str_obj->as_string->chars;
+    size_t start = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        if (chars[i] == '\n' || chars[i] == '\r') {
+            const size_t line_len = i - start;
+            String* line = str_of_cap(line_len);
+            if (line) {
+                if (line_len > 0) {
+                    str_append_bytes_unsafe(line, &chars[start], line_len);
+                }
+
+                auto string_obj = new(Al_Object);
+                string_obj->kind = okString;
+                string_obj->ref_count = 1;
+                string_obj->as_string = line;
+
+                vec_append(result->as_vector, string_obj);
+            }
+            if (chars[i] == '\r' && (i + 1) < len && chars[i + 1] == '\n') {
+                i++;
+            }
+            start = i + 1;
+        }
+    }
+    if (start <= len) {
+        const size_t line_len = len - start;
+        if (line_len > 0 || len == 0) {
+            String* line = str_of_cap(line_len);
+            if (line) {
+                if (line_len > 0) {
+                    str_append_bytes_unsafe(line, &chars[start], line_len);
+                }
+
+                auto string_obj = new(Al_Object);
+                string_obj->kind = okString;
+                string_obj->ref_count = 1;
+                string_obj->as_string = line;
+
+                vec_append(result->as_vector, string_obj);
+            }
+        }
+    }
+
+    obj_release(str_obj);
+    return result;
+}
+
 
 static void run_repl(Eval_Runtime* eval) {
     char* line = nullptr;
@@ -429,6 +489,7 @@ int main(const int argc, char** argv) {
     register_builtin(&eval, "cap",       bcap);
     register_builtin(&eval, "slurp",     bslurpfile);
     register_builtin(&eval, "strcopy",   bstrcopy);
+    register_builtin(&eval, "splitLines",bsplitlines);
     if (argc == 1) {
         printf("AL (Abstract Language) -- version %s\n", VERSION);
         puts("enter #q to quit");

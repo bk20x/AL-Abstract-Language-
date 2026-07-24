@@ -15,7 +15,20 @@ Vector* vec_new() {
     return result;
 }
 
+
 Vector* vec_new_of_cap(const size_t cap) {
+    Vector* result = new(Vector);
+    assert(result);
+    *result = (Vector){
+        .cap  = cap,
+        .len  = 0,
+        .data = alloc(sizeof(void*) * cap)
+    };
+    assert(result->data);
+    return result;
+}
+
+Vector* vec_new_of_cap0(const size_t cap) {
     Vector* result = new(Vector);
     assert(result);
     *result = (Vector){

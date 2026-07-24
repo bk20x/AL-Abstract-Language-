@@ -591,7 +591,7 @@ Al_Object* eval_dostring(Eval_Runtime* eval, const cstring string) {
     prime_lexer_from_string(eval->reader->lexer, temp);
     next_token(eval->reader->lexer);
 
-    Vector* program = vec_new_of_cap(8);
+    Vector* program = vec_new_of_cap0(8);
     while (eval->reader->lexer->token.kind != tkEof) {
         AST_Node* node = read(eval->reader);
         vec_append_unsafe(program, node);

@@ -16,7 +16,7 @@ Reader*     init_reader_from_file(cstring);
 /* Destructor Division */
 void        deinit_reader(Reader*);
 
-void prime_reader_from_file(Reader*, cstring);
+void prime_reader_from_file(const Reader*, cstring);
 
 /* [Parsing] Operations Division */
 AST_Node*   read(Reader*);

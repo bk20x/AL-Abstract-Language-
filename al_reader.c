@@ -39,7 +39,7 @@ Reader* init_reader_from_file(const cstring filename) {
     return result;
 }
 
-void prime_reader_from_file(Reader* reader, const char* filename) {
+void prime_reader_from_file(const Reader* reader, const char* filename) {
     prime_lexer_from_file(reader->lexer, filename);
     next_token(reader->lexer);
 }
@@ -319,10 +319,46 @@ static AST_Node* parse_basic(Reader* reader) {
             case tkString: {
                 AST_Node* strlit_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
                 strlit_node->kind = nkStrLit;
-                strlit_node->as_str_lit = str_byteslice(reader->lexer->token.view_val.buf, 0, reader->lexer->token.view_val.len);
+
+
+                const char* src_buf = reader->lexer->token.view_val.buf;
+                const size_t src_len = reader->lexer->token.view_val.len;
+
+                String* result_strlit = str_of_cap(src_len);
+
+
+                for (size_t i = 0; i < src_len; i++) {
+                    if (src_buf[i] == '\\' && (i + 1) < src_len) {
+                        i++;
+                        char escaped_char;
+                        switch (src_buf[i]) {
+                            case 'n': escaped_char = '\n';
+                                break; // LF (0x0A)
+                            case 'r': escaped_char = '\r';
+                                break; // CR (0x0D)
+                            case 't': escaped_char = '\t';
+                                break; // Tab (0x09)
+                            case '\\': escaped_char = '\\';
+                                break; // Backslash
+                            case '"': escaped_char = '"';
+                                break; // Embedded Quote
+                            default:
+                                str_append_bytes_unsafe(result_strlit, "\\", 1);
+                                escaped_char = src_buf[i];
+                                break;
+                        }
+                        str_append_bytes_unsafe(result_strlit, &escaped_char, 1);
+                    } else {
+                        str_append_bytes_unsafe(result_strlit, &src_buf[i], 1);
+                    }
+                }
+                strlit_node->as_str_lit = result_strlit;
+
+
                 next_token(reader->lexer);
                 return strlit_node;
             }
+
             case tkChar: {
                 AST_Node* char_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
                 char_node->kind = nkCharLit;
@@ -332,7 +368,7 @@ static AST_Node* parse_basic(Reader* reader) {
             }
             case tkLBrace: {
                 next_token(reader->lexer); // eat '{'
-                Vector* stmts = vec_new_of_cap(32);
+                Vector* stmts = vec_new_of_cap0(32);
                 while (reader->lexer->token.kind != tkRBrace && reader->lexer->token.kind != tkEof) {
                     AST_Node* node = read(reader);
                     vec_append_unsafe(stmts, node);

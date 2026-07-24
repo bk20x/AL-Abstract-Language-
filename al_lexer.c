@@ -325,13 +325,15 @@ void next_token(Lexer* lexer) {
             if (lexer->pos < lexer->buf->len && lexer->buf->chars[lexer->pos] == '.') {
                 advance(lexer, 1); // eat `.` OH MT GOD ITS A RANGE!!!
                 lexer->token = (Token){
-                    .kind = tkOperator,
+                    .kind    = tkOperator,
                     .opr_val = OPERATOR(opRange)
                 };
                 break;
             }
-            fprintf(stderr, "Lexer Error: Unexpected single dot character.\n");
-            exit(EXIT_FAILURE);
+            lexer->token = (Token){
+                .kind    = tkDot
+            };
+            break;
         }
         case '"': {
             lex_string(lexer);
