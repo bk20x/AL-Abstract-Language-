@@ -3,8 +3,8 @@
 
 typedef void(*Free_Function)(void*);
 
-#define ALLOC_USE_LIBC_MALLOC
-#ifdef ALLOC_USE_LIBC_MALLOC
+#define ALLOC_USE_LIBC
+#ifdef ALLOC_USE_LIBC
     #include <stdlib.h>
     #define alloc   malloc
     #define dealloc free

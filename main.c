@@ -12,7 +12,7 @@
 #include "al_environment.h"
 #include "al_ast.h"
 #include "al_vector.h"
-
+#include "al_cf.h"
 static Al_Object* bprintln(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
     if (!args || !args->as_param_list) {
         putc('\n', stdout);
@@ -382,7 +382,7 @@ static Al_Object* bsplitlines(Eval_Runtime* eval, Environment* scope, AST_Node* 
                     str_append_bytes_unsafe(line, &chars[start], line_len);
                 }
 
-                auto string_obj = new(Al_Object);
+                Al_Object* string_obj = new(Al_Object);
                 string_obj->kind = okString;
                 string_obj->ref_count = 1;
                 string_obj->as_string = line;
@@ -404,7 +404,7 @@ static Al_Object* bsplitlines(Eval_Runtime* eval, Environment* scope, AST_Node* 
                     str_append_bytes_unsafe(line, &chars[start], line_len);
                 }
 
-                auto string_obj = new(Al_Object);
+                Al_Object* string_obj = new(Al_Object);
                 string_obj->kind = okString;
                 string_obj->ref_count = 1;
                 string_obj->as_string = line;
@@ -424,14 +424,10 @@ static void run_repl(Eval_Runtime* eval) {
     size_t s = 0;
 
     String* buffer = str_of_cap(64);
-    if (!buffer) {
-        fprintf(stderr, "Fatal error: out of memory initializing REPL buffer\n");
-        return;
-    }
-
+    printf("AL (Abstract Language) -- version %s\n", VERSION);
+    puts("enter #q to quit");
     printf("> ");
     fflush(stdout);
-
     while (getline(&line, &s, stdin) != -1) {
         line[strcspn(line, "\n")] = '\0';
         size_t len = strlen(line);
@@ -449,7 +445,6 @@ static void run_repl(Eval_Runtime* eval) {
             fflush(stdout);
             continue;
         }
-
         if (buffer->len == 2 && memcmp(buffer->chars, "#q", 2) == 0) {
             break;
         }
@@ -470,8 +465,6 @@ static void run_repl(Eval_Runtime* eval) {
     free(line); // would use dealloc here but if i change it, to not js be malloc, gotta use the libc shit
 }
 
-
-static const cstring VERSION = "0.1.0";
 int main(const int argc, char** argv) {
     Eval_Runtime eval = eval_init();
     register_builtin(&eval, "print",     bprintln);
@@ -491,8 +484,6 @@ int main(const int argc, char** argv) {
     register_builtin(&eval, "strcopy",   bstrcopy);
     register_builtin(&eval, "splitLines",bsplitlines);
     if (argc == 1) {
-        printf("AL (Abstract Language) -- version %s\n", VERSION);
-        puts("enter #q to quit");
         run_repl(&eval);
     } else if (argc == 2) {
         eval_dofile(&eval, argv[1]);
