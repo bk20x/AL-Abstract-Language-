@@ -9,6 +9,7 @@
 
 enum Node_Kind : u64 {
     nkVarDecl,
+    nkDefine,
     nkSymLit,
     nkStrLit,
     nkIntLit,
@@ -37,6 +38,13 @@ typedef bool    Bool_Lit;
 
 typedef struct Var_Decl_Node Var_Decl_Node;
 struct Var_Decl_Node {
+    Symbol*   lhs;
+    AST_Node* rhs;
+};
+
+
+typedef struct Define_Node Define_Node;
+struct Define_Node {
     Symbol*   lhs;
     AST_Node* rhs;
 };
@@ -98,6 +106,7 @@ struct AST_Node {
         Dot_Access_Node   as_dot_access;
         Range_Expr_Node   as_range_expr;
         Funcall_Node      as_funcall;
+        Define_Node       as_define;
         Var_Decl_Node     as_vardecl;
         Symbol*           as_symbol;
         String*           as_str_lit;

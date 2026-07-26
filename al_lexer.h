@@ -13,6 +13,7 @@ typedef enum : u64 {
     tkRout,     // `%`
     tkComma,    // `,`
     tkVar,      // `var`
+    tkDefine,   // `define`
     tkIf,       // `if`
     tkElse,     // `else`
     tkFor,      // `for`

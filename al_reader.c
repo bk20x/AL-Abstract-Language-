@@ -12,6 +12,7 @@ static AST_Node* parse_basic(Reader* reader);
 static AST_Node* parse_funcall(Reader*, AST_Node*);
 static AST_Node* parse_funcall_param_list(Reader*);
 static AST_Node* parse_var_declaration(Reader*);
+static AST_Node* parse_immu_declaration(Reader*);
 Reader* init_reader() {
     Reader* result = new(Reader);
     Lexer*  lexer  = init_lexer();
@@ -166,6 +167,29 @@ static AST_Node* parse_var_declaration(Reader* reader) {
     *result = (AST_Node){
         .kind = nkVarDecl,
         .as_vardecl = {
+            .lhs = var_name,
+            .rhs = val_node
+        }
+    };
+    return result;
+}
+
+static AST_Node* parse_immu_declaration(Reader* reader) {
+    next_token(reader->lexer); // eat define
+    assert(reader->lexer->token.kind == tkSymbol && "Expected symbol after `define`");
+
+    const String_View name_view = reader->lexer->token.view_val;
+    next_token(reader->lexer); // eat symbol
+
+    assert(reader->lexer->token.kind == tkOperator && reader->lexer->token.opr_val.kind == opAssign);
+    next_token(reader->lexer);
+
+    Symbol*   var_name = get_symbol_if_interned_or_alloc_and_intern_it(reader, &name_view);
+    AST_Node* val_node = read(reader);
+    AST_Node* result   = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+    *result = (AST_Node){
+        .kind = nkDefine,
+        .as_define = {
             .lhs = var_name,
             .rhs = val_node
         }
@@ -338,6 +362,9 @@ static AST_Node* parse_basic(Reader* reader) {
     switch (reader->lexer->token.kind) {
         case tkVar: {
             return parse_var_declaration(reader);
+        }
+        case tkDefine: {
+            return parse_immu_declaration(reader);
         }
         case tkRout: {
             return parse_routine_definition(reader);

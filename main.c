@@ -111,6 +111,10 @@ static Al_Object* bload(Eval_Runtime* eval, Environment* scope, AST_Node* args) 
     return (Al_Object*)&TRUE;
 }
 
+
+
+
+
 static Al_Object* bmakevec(Eval_Runtime* eval, Environment* scope, AST_Node* restrict args) {
     const Vector* params = args->as_param_list;
     Vector* result_vec;
@@ -238,8 +242,8 @@ static Al_Object* bhigh(Eval_Runtime* eval, Environment* scope, AST_Node* args) 
                     obj_release(range_or_vec_obj);
                     return result;
                 }
+                default: die("i haven't implemented that range yet");
             }
-            break;
         }
         case okVector: {
             const auto result = new(Al_Object);
@@ -249,7 +253,7 @@ static Al_Object* bhigh(Eval_Runtime* eval, Environment* scope, AST_Node* args) 
             obj_release(range_or_vec_obj);
             return result;
         }
-        default: die("not done in builtin `high`");
+        default: die("not done here");
     }
 }
 static Al_Object* blow(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
@@ -273,8 +277,8 @@ static Al_Object* blow(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
                     obj_release(range_or_vec_obj);
                     return result;
                 }
+                default: die("i haven't implemented that range yet");
             }
-            break;
         }
         case okVector: {
             const auto result = new(Al_Object);
@@ -428,6 +432,8 @@ static Al_Object* bexport(Eval_Runtime* eval, Environment* scope, AST_Node* args
 }
 
 
+
+
 static void run_repl(Eval_Runtime* eval) {
     char* line = nullptr;
     size_t s = 0;
@@ -493,6 +499,7 @@ int main(const int argc, char** argv) {
     register_builtin(&eval, "strcopy",   bstrcopy);
     register_builtin(&eval, "splitLines",bsplitlines);
     register_builtin(&eval,  "export",   bexport);
+
     if (argc == 1) {
         run_repl(&eval);
     } else if (argc == 2) {

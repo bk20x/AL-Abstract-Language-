@@ -113,6 +113,9 @@ void lex_symbol(Lexer* lexer) {
 
     if (len == 3 && memcmp(sym_view.buf, "var", len) == 0) {
         lexer->token = (Token){.kind = tkVar};
+    }
+    else if (len == 6 && memcmp(sym_view.buf, "define", len) == 0) {
+        lexer->token = (Token){.kind = tkDefine};
     } else if (len == 2 && memcmp(sym_view.buf, "if", len) == 0) {
         lexer->token = (Token){.kind = tkIf};
     } else if (len == 4 && memcmp(sym_view.buf, "else", len) == 0) {

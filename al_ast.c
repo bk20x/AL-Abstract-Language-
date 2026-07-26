@@ -26,6 +26,7 @@ void destroy_pooled_ast(const AST_Node* node) {
         case nkIntLit:
         case nkFloatLit:
         case nkCharLit:
+        case nkBoolLit:
         case nkSymLit:
             // owned by interned_symbols
             break;
@@ -45,6 +46,7 @@ void destroy_pooled_ast(const AST_Node* node) {
             }
             break;
         }
+        case nkDefine: break;
         case nkFuncall: {
             break;
         }

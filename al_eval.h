@@ -15,6 +15,7 @@ Eval_Runtime eval_init();
 Al_Object*   eval_ast_in(Eval_Runtime*,   Environment*, AST_Node*);
 void         eval_dofile(Eval_Runtime*,   cstring restrict filename);
 void         eval_dofile_s(Eval_Runtime*, const String* restrict filename);
+Al_Object    eval_dofile_export(Eval_Runtime*, const String* restrict filename);
 Al_Object*   eval_dostring(Eval_Runtime*, cstring);
 
 
