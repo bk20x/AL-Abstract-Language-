@@ -65,7 +65,6 @@ typedef struct {
 struct Al_Object {
     Al_Object_Kind kind;
     u32            ref_count;
-    bool           immu;
     union {
         Al_Range_Object     as_range;
         Al_Builtin_Object   as_builtin;

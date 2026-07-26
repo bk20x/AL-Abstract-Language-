@@ -28,7 +28,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             result->kind      = okInt;
             result->ref_count = 1;
             result->as_int    = ast->as_int_lit;
-            result->immu      = false;
             return result;
         }
         case nkFloatLit: {
@@ -36,7 +35,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             result->kind      = okFloat;
             result->ref_count = 1;
             result->as_float  = ast->as_float_lit;
-            result->immu      = false;
             return result;
         }
         case nkCharLit: {
@@ -44,7 +42,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             result->kind      = okChar;
             result->ref_count = 1;
             result->as_char   = ast->as_char_lit;
-            result->immu      = false;
             return result;
         }
         case nkBoolLit: {
@@ -52,7 +49,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             result->kind      = okBool;
             result->ref_count = 1;
             result->as_bool   = ast->as_bool_lit;
-            result->immu      = false;
             return result;
         }
         case nkStrLit: {
@@ -60,7 +56,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             result->kind      = okString;
             result->ref_count = 1;
             result->as_string = str_byteslice(ast->as_str_lit->chars, 0, ast->as_str_lit->len);
-            result->immu      = false;
             return result;
         }
         case nkSymLit: {
@@ -79,22 +74,8 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             }
 
             Al_Object* var_val = eval_ast_in(eval, scope, vardecl.rhs);
-            var_val->immu = false;
             ot_put(scope->locals, vardecl.lhs, var_val);
             #undef vardecl
-            return (Al_Object*)&TRUE;
-        }
-        case nkDefine: {
-            #define definedecl ast->as_define
-            if (ot_get(scope->locals, definedecl.lhs)) {
-                fprintf(stderr, "Define %.*s is already defined\n", (int)definedecl.lhs->len, definedecl.lhs->name);
-                exit(EXIT_FAILURE);
-            }
-
-            Al_Object* var_val = eval_ast_in(eval, scope, definedecl.rhs);
-            var_val->immu = true;
-            ot_put(scope->locals, definedecl.lhs, var_val);
-            #undef definedecl
             return (Al_Object*)&TRUE;
         }
         case nkFuncDef: {
@@ -102,7 +83,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             Al_Object* rout_obj = new(Al_Object);
             rout_obj->kind      = okFunction;
             rout_obj->ref_count = 1;
-            rout_obj->immu      = true;
             rout_obj->as_function = new(Al_Routine);
             rout_obj->as_function->scope = env_new(scope);
             rout_obj->as_function->routine_ast = ast;
@@ -250,17 +230,11 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
         case nkBinaryExpr: {
             const Binary_Expr_Node binop = ast->as_binary_expr;
             if (binop.op == opAssign) {
-                assert(binop.left->kind == nkSymLit && "Runtime Error: L-value of an assignment statement must be an identifier.");
+                assert(binop.left->kind == nkSymLit && "Left side of an assignment must be a symbol.");
 
                 Environment* target_scope = scope;
                 while (target_scope != nullptr) {
-                    auto lhs = ot_get(target_scope->locals, binop.left->as_symbol);
-                    if (lhs && lhs->immu) {
-                        die("Cannot assign to a `define`");
-                    }
-                    if (lhs) {
-                        break;
-                    }
+                    if (ot_get(target_scope->locals, binop.left->as_symbol)) break;
                     target_scope = target_scope->parent;
                 }
 
@@ -329,8 +303,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                 }
                 if (result == nullptr)
                     result = (Al_Object*)&FALSE;
-                else
-                    result->immu = false;
                 obj_release(right);
                 obj_release(left);
                 return result;
