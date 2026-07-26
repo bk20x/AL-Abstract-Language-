@@ -53,7 +53,8 @@ void env_release(Environment* env) {
     env->parent = nullptr;
     dealloc(env);
 
-    while (current != nullptr) {
+    while (true) {
+        if (current->parent == nullptr) break;
         assert(current->refs > 0 && "Parent environment reference count underflow!");
         current->refs--;
         if (current->refs > 0) {
