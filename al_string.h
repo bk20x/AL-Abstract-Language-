@@ -13,7 +13,7 @@ typedef struct {
 String* str_of_cap(size_t);
 String* str_of_cstr(const char*);
 String* str_byteslice(const char*, size_t low, size_t high);
-
+String* string_copy(const String*);
 /* Destructor Division */
 void str_free(String*);
 
@@ -21,8 +21,8 @@ void str_free(String*);
 // All s64 return -1 on failure, otherwise they return the new length of `str`
 s64     str_append_cstr(String* str, const char* cstr);
 s64     str_append(String*, String*);
-s64  str_appendf(String* str, const char* format, ...);
-void str_ensure_cap(String*, size_t needed_capacity);
+s64     str_appendf(String* str, const char* format, ...);
+void    str_ensure_cap(String*, size_t needed_capacity);
 
 /* Operations Division [Writing/Printing] */
 void    str_writen(const String*, FILE*, size_t n);

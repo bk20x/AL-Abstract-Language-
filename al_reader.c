@@ -12,7 +12,6 @@ static AST_Node* parse_basic(Reader* reader);
 static AST_Node* parse_funcall(Reader*, AST_Node*);
 static AST_Node* parse_funcall_param_list(Reader*);
 static AST_Node* parse_var_declaration(Reader*);
-static AST_Node* parse_dot_access(Reader*);
 Reader* init_reader() {
     Reader* result = new(Reader);
     Lexer*  lexer  = init_lexer();
@@ -332,44 +331,6 @@ static AST_Node* parse_for_loop(Reader* reader) {
     };
     return result;
 }
-
-
-static AST_Node* parse_dot_access(Reader* reader) {
-    // Treat the token we just processed before the '.' as the base left-hand side
-    const Token* first_sym = &reader->lexer->last_token;
-    assert(first_sym->kind == tkSymbol);
-
-    // Build the initial symbol literal node for the left side
-    AST_Node* left = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-    *left = (AST_Node) {
-        .kind      = nkSymLit,
-        .as_symbol = get_symbol_if_interned_or_alloc_and_intern_it(reader, &first_sym->view_val)
-    };
-
-    // Loop to consume the dot and field name iteratively (handles chains like a.b.c)
-    while (reader->lexer->token.kind == tkDot) {
-        next_token(reader->lexer); // eat '.'
-
-        assert(reader->lexer->token.kind == tkSymbol && "Expected member identifier after '.'");
-        const String_View member_view = reader->lexer->token.view_val;
-        Symbol* member_sym = get_symbol_if_interned_or_alloc_and_intern_it(reader, &member_view);
-        next_token(reader->lexer); // eat member symbol
-
-        // Wrap the previous left-hand side into a new nested nkDotAccess node
-        AST_Node* dot_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-        *dot_node = (AST_Node) {
-            .kind = nkDotAccess,
-            .as_dot_access = {
-                .receiver = left,
-                .message   = member_sym
-            }
-        };
-        left = dot_node;
-    }
-
-    return left;
-}
-
 
 static AST_Node* parse_basic(Reader* reader) {
     AST_Node* base_node = nullptr;

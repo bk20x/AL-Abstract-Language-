@@ -110,6 +110,6 @@ struct AST_Node {
     };
 };
 
-void destroy_pooled_ast(AST_Node*);
+void destroy_pooled_ast(const AST_Node*);
 
 #endif //ALD_AL_AST_H

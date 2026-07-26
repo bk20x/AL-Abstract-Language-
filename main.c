@@ -352,7 +352,7 @@ static Al_Object* bstrcopy(Eval_Runtime* eval, Environment* scope, AST_Node* arg
     Al_Object* result = new(Al_Object);
     result->kind      = okString;
     result->ref_count = 1;
-    result->as_string = str_of_cap(obj->as_string->cap);
+    result->as_string = string_copy(obj->as_string);
     str_append_bytes_unsafe(result->as_string, obj->as_string->chars, obj->as_string->len);
     obj_release(obj);
     return result;

@@ -21,7 +21,7 @@ String* string_of_node_kind(const Node_Kind kind) {
 }
 
 
-void destroy_pooled_ast(AST_Node* node) {
+void destroy_pooled_ast(const AST_Node* node) {
     switch (node->kind) {
         case nkIntLit:
         case nkFloatLit:

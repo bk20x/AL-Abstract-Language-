@@ -140,6 +140,12 @@ s64 str_appendf(String* str, const char* format, ...) {
     return (s64)str->len;
 }
 
+String* string_copy(const String* string) {
+    String* result = str_of_cap(string->cap);
+    memcpy(result->chars,  string->chars, string->len);
+    return result;
+}
+
 void str_free(String* str) {
     dealloc(str->chars);
     dealloc(str);
