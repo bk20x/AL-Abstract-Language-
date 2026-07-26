@@ -19,7 +19,8 @@ void str_free(String*);
 
 /* Operations Division */
 // All s64 return -1 on failure, otherwise they return the new length of `str`
-s64  str_append_cstr(String* str, const char* cstr);
+s64     str_append_cstr(String* str, const char* cstr);
+s64     str_append(String*, String*);
 s64  str_appendf(String* str, const char* format, ...);
 void str_ensure_cap(String*, size_t needed_capacity);
 

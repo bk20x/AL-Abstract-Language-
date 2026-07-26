@@ -67,6 +67,9 @@ void destroy_pooled_ast(AST_Node* node) {
         case nkRangeExpr: {
             break;
         }
+        case nkDotAccess: {
+            break;
+        }
         default:
             str_print(string_of_node_kind(node->kind));
             die("Unhandled node kind in destroy_pooled_ast");

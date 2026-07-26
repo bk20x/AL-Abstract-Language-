@@ -22,7 +22,8 @@ enum Node_Kind : u64 {
     nkBlockLit,
     nkIfExpr,
     nkForLoop,
-    nkRangeExpr
+    nkRangeExpr,
+    nkDotAccess
 };
 typedef enum Node_Kind Node_Kind;
 String* string_of_node_kind(Node_Kind);
@@ -82,7 +83,10 @@ typedef struct {
 
 typedef struct Expression Expression;
 struct Expression {};
-
+typedef struct {
+    AST_Node* receiver;
+    Symbol*   message;
+} Dot_Access_Node;
 
 struct AST_Node {
     Node_Kind kind;
@@ -91,6 +95,7 @@ struct AST_Node {
         For_Loop_Node     as_for_loop;
         If_Expr_Node      as_if_expression;
         Func_Def_Node     as_func_def;
+        Dot_Access_Node   as_dot_access;
         Range_Expr_Node   as_range_expr;
         Funcall_Node      as_funcall;
         Var_Decl_Node     as_vardecl;

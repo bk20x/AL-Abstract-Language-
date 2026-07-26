@@ -188,7 +188,7 @@ void lex_number(Lexer* lexer) {
 
     size_t token_len = lexer->pos - start_pos;
     if (floating) {
-        char tmp[64]; // this is stupid and im changing it later
+        char tmp[64]; // this is stupid and im changing it later, or maybe its fine.
         if (token_len >= sizeof(tmp)) {
             token_len = sizeof(tmp) - 1;
         }
@@ -259,11 +259,19 @@ void next_token(Lexer* lexer) {
         }
         case '>': {
             advance(lexer, 1);
+            if (lexer->pos < lexer->buf->len && lexer->buf->chars[lexer->pos] == '=') {
+                lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opGThanEq)};
+                break;
+            }
             lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opGThan)};
             break;
         }
         case '<': {
             advance(lexer, 1);
+            if (lexer->pos < lexer->buf->len && lexer->buf->chars[lexer->pos] == '=') {
+                lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opLThanEq)};
+                break;
+            }
             lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opLThan)};
             break;
         }
@@ -303,8 +311,6 @@ void next_token(Lexer* lexer) {
             lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opSub)};
             break;
         }
-
-
         case '*': {
             advance(lexer, 1);
             lexer->token = (Token){.kind = tkOperator, .opr_val = OPERATOR(opMul)};
@@ -417,6 +423,7 @@ String* string_of_token_kind(const Token_Kind kind) {
         case tkString:  return str_of_cstr("tkString");
         case tkEof:     return str_of_cstr("tkEof");
         case tkError:   return str_of_cstr("tkError");
+        case tkDot:     return str_of_cstr("tkDot");
         default:        return str_of_cstr("???");
     }
 }

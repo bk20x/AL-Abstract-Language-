@@ -41,8 +41,8 @@ static Al_Object* bstrcat(Eval_Runtime* eval, Environment* scope, AST_Node* args
     assert(str1->kind == okString && str2->kind == okString && "`strcat` expects 2 parameters of primitive kind String");
 
     String* new_s = str_of_cap(str1->as_string->len + str2->as_string->len);
-    str_append_bytes_unsafe(new_s, str1->as_string->chars, str1->as_string->len);
-    str_append_bytes_unsafe(new_s, str2->as_string->chars, str2->as_string->len);
+    str_append(new_s, str1->as_string);
+    str_append(new_s, str2->as_string);
 
     Al_Object* result = new(Al_Object);
     result->kind = okString;
@@ -164,11 +164,11 @@ static Al_Object* baset(Eval_Runtime* eval, Environment* scope, AST_Node* args) 
     const s64 index = idx_obj->as_int;
     Al_Object* old_val = vec_obj->as_vector->data[index];
     vec_obj->as_vector->data[index] = val_obj;
-    if (old_val != nullptr) {
-        obj_release(old_val);
+    if (vec_obj->as_vector->len < vec_obj->as_vector->cap) {
+        vec_obj->as_vector->len++;
     }
 
-
+    obj_release(old_val);
     obj_release(vec_obj);
     obj_release(idx_obj);
     return (Al_Object*)&TRUE;
@@ -418,6 +418,15 @@ static Al_Object* bsplitlines(Eval_Runtime* eval, Environment* scope, AST_Node* 
     return result;
 }
 
+static Al_Object* bexport(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
+    assert(scope->parent != nullptr);
+    Al_Object* result = new(Al_Object);
+    result->kind      = okEnvironment;
+    result->ref_count = 1;
+    result->as_env    = env_retain(scope);
+    return result;
+}
+
 
 static void run_repl(Eval_Runtime* eval) {
     char* line = nullptr;
@@ -483,6 +492,7 @@ int main(const int argc, char** argv) {
     register_builtin(&eval, "slurp",     bslurpfile);
     register_builtin(&eval, "strcopy",   bstrcopy);
     register_builtin(&eval, "splitLines",bsplitlines);
+    register_builtin(&eval,  "export",   bexport);
     if (argc == 1) {
         run_repl(&eval);
     } else if (argc == 2) {

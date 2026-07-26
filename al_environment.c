@@ -40,7 +40,7 @@ Environment* env_retain(Environment* env) {
 }
 
 void env_release(Environment* env) {
-    if (env == nullptr) return; // toplevel parent is nul
+    if (env == nullptr) return; // toplevel parent is null otherwise this would be an assertion
     assert(env->refs > 0 && "Environment reference count underflow!");
 
     env->refs--;

@@ -88,5 +88,6 @@ void       destroy_object_contents(Al_Object*);
 
 String* string_of_object(const Al_Object*);
 void    print_object(const Al_Object*);
-
+bool    obj_eq(const Al_Object* restrict, const Al_Object* restrict);
+bool    complex_object_eq(const Al_Object*  restrict a, const Al_Object* restrict b);
 #endif //ALD_AL_OBJECT_H

@@ -9,7 +9,7 @@ typedef void(*Free_Function)(void*);
     #define alloc   malloc
     #define dealloc free
     #define realloc realloc
-    #define calloc  calloc
+    #define alloc0  calloc
 #endif
 
 #define new(T) (T*)alloc(sizeof(T))

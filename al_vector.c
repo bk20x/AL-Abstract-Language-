@@ -34,7 +34,7 @@ Vector* vec_new_of_cap0(const size_t cap) {
     *result = (Vector){
         .cap  = cap,
         .len  = 0,
-        .data = calloc(cap, sizeof(void*))
+        .data = alloc0(cap, sizeof(void*))
     };
     assert(result->data);
     return result;

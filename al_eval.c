@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "al_object.h"
 #include "al_environment.h"
 #include "al_ast.h"
@@ -76,7 +75,7 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
 
             Al_Object* var_val = eval_ast_in(eval, scope, vardecl.rhs);
             ot_put(scope->locals, vardecl.lhs, var_val);
-
+            #undef vardecl
             return (Al_Object*)&TRUE;
         }
         case nkFuncDef: {
@@ -88,9 +87,8 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             rout_obj->as_function = new(Al_Routine);
             rout_obj->as_function->scope = env_new(scope);
             rout_obj->as_function->routine_ast = ast;
-
             ot_put(scope->locals, routdef.rout_name, rout_obj);
-
+            #undef routdef
             return (Al_Object*)&TRUE;
         }
         case nkBlockLit: {
@@ -110,19 +108,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                 }
                 expr_index++;
             }
-
-            // for nested functions, if they arent returned, we release them.
-            for (size_t idx = 0; idx < block_scope->locals->cap; idx++) {
-                Al_Object* val = block_scope->locals->entries[idx].value;
-                if (val && val->kind == okFunction && val != block_result) {
-                    block_scope->locals->entries[idx].value = nullptr;
-                    obj_release(val);
-                }
-            }
-
-            // if the block_result is a closure about to return, delete it from locals
-            // transfer ownership out to the caller,
-            // this protects upvalues from being destroyed too early
             if (block_result->kind == okFunction) {
                 for (size_t idx = 0; idx < block_scope->locals->cap; idx++) {
                     if (block_scope->locals->entries[idx].value == block_result) {
@@ -133,6 +118,15 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                 if (closure_scope->parent == block_scope) {
                     if (block_result->ref_count > 1) {
                         block_result->ref_count--;
+                    }
+                }
+            }
+            else if (block_result->kind != okEnvironment) {
+                for (size_t idx = 0; idx < block_scope->locals->cap; idx++) {
+                    Al_Object* val = block_scope->locals->entries[idx].value;
+                    if (val && val->kind == okFunction && val != block_result) {
+                        block_scope->locals->entries[idx].value = nullptr;
+                        obj_release(val);
                     }
                 }
             }
@@ -174,7 +168,6 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                 ot_put(call_scope->locals, param_name, evaluated_val);
             }
 
-
             // We could just evaluate the body directly, but that creates ANOTHER scope. blocks are their own thing
             // some duplicate code but this is fine
             Al_Object* call_result = (Al_Object*)&TRUE;
@@ -196,11 +189,13 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                 expr_index++;
             }
 
-            for (size_t idx = 0; idx < call_scope->locals->cap; idx++) {
-                Al_Object* val = call_scope->locals->entries[idx].value;
-                if (val && val->kind == okFunction && val != call_result) {
-                    call_scope->locals->entries[idx].value = nullptr;
-                    obj_release(val);
+            if (call_result->kind != okEnvironment) {
+                for (size_t idx = 0; idx < call_scope->locals->cap; idx++) {
+                    Al_Object* val = call_scope->locals->entries[idx].value;
+                    if (val && val->kind == okFunction && val != call_result) {
+                        call_scope->locals->entries[idx].value = nullptr;
+                        obj_release(val);
+                    }
                 }
             }
 
@@ -229,8 +224,10 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                     }
                 }
             }
+            #undef funcall
             return call_result;
         }
+
         case nkBinaryExpr: {
             const Binary_Expr_Node binop = ast->as_binary_expr;
             if (binop.op == opAssign) {
@@ -359,41 +356,11 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             } else {
                 switch (binop.op) {
                     case opEq: {
-                        if (left->kind != right->kind) {
-                            op_result = (Al_Object*)&FALSE;
-                            break;
-                        }
-                        switch (left->kind) {
-                            case okVector:
-                                op_result = left->as_vector == right->as_vector ? (Al_Object*)&TRUE : (Al_Object*)&FALSE;
-                                break;
-                            case okFunction:
-                                op_result = left->as_function->routine_ast == right->as_function->routine_ast ? (Al_Object*)&TRUE : (Al_Object*)&FALSE;
-                                break;
-                            case okBuiltin:
-                                op_result = left->as_builtin.builtin == right->as_builtin.builtin ? (Al_Object*)&TRUE : (Al_Object*)&FALSE;
-                                break;
-                            case okString:
-                                if (left == right) {
-                                    op_result = (Al_Object*)&TRUE;
-                                }
-                                else if (left->as_string->len != right->as_string->len) {
-                                    op_result = (Al_Object*)&FALSE;
-                                }
-                                else if (memcmp(left->as_string->chars, right->as_string->chars, left->as_string->len) == 0) {
-                                    op_result = (Al_Object*)&TRUE;
-                                } else {
-                                    op_result = (Al_Object*)&FALSE;
-                                }
-                                break;
-                            case okBool:
-                                op_result = left->as_bool == right->as_bool ? (Al_Object*)&TRUE : (Al_Object*)&FALSE;
-                                break;
-                            case okChar:
-                                op_result = left->as_char == right->as_char ? (Al_Object*)&TRUE : (Al_Object*)&FALSE;
-                                break;
-                            default: die("Unimplemented comparison");
-                        }
+                       if (obj_eq(left, right)) {
+                           op_result = (Al_Object*)&TRUE;
+                           break;
+                       }
+                        op_result = (Al_Object*)&FALSE;
                         break;
                     }
                     default: die("havent implemented any other operators besides `==` for non numeric types");
@@ -547,9 +514,17 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             #undef range_expr
             return result;
         }
-
-
-
+        case nkDotAccess: {
+            const Dot_Access_Node dotop = ast->as_dot_access;
+            Al_Object* receiver = eval_ast_in(eval, scope, dotop.receiver);
+            assert(receiver->kind == okEnvironment && "Receiver of a dot operation must be an environment!");
+            obj_release(receiver);
+            Al_Object* result = env_lookup_symbol(receiver->as_env, dotop.message);
+            if (!result) {
+                die("No member found on that object"); // temp shity error msg
+            }
+            return obj_retain(result);
+        }
         default: {
             die("Unimplemented case in eval_ast");
         }

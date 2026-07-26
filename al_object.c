@@ -1,6 +1,8 @@
 #include "al_object.h"
 
 #include <assert.h>
+#include <string.h>
+
 #include "al_alloc.h"
 #include "al_assert.h"
 #include "al_environment.h"
@@ -10,6 +12,9 @@
 Al_Object* obj_retain(Al_Object* object) {
     if (object && object->kind != okBool) {
         object->ref_count++;
+        if (object->kind == okEnvironment) {
+            env_retain(object->as_env);
+        }
     }
     return object;
 }
@@ -19,14 +24,12 @@ void destroy_object_contents(Al_Object* object) {
 
     switch (object->kind) {
         case okString: {
-            if (object->as_string) {
-                str_free(object->as_string);
-                object->as_string = nullptr;
-            }
+            str_free(object->as_string);
+            object->as_string = nullptr;
+
             break;
         }
         case okFunction: {
-            if (object->as_function) {
                 Environment* scope_to_release = object->as_function->scope;
                 object->as_function->scope = nullptr;
 
@@ -43,7 +46,7 @@ void destroy_object_contents(Al_Object* object) {
                 env_release(scope_to_release);
                 dealloc(object->as_function);
                 object->as_function = nullptr;
-            }
+
             break;
         }
         case okVector: {
@@ -59,6 +62,22 @@ void destroy_object_contents(Al_Object* object) {
                     }
                 }
                 vec_destroy(vec);
+            }
+            break;
+        }
+        case okEnvironment: {
+            Environment* targ = object->as_env;
+            object->as_env = nullptr;
+            if (targ) {
+                if (targ->locals) {
+                    ot_destroy(targ->locals);
+                    targ->locals = nullptr;
+                }
+                if (targ->parent) {
+                    env_release(targ->parent);
+                    targ->parent = nullptr;
+                }
+                dealloc(targ);
             }
             break;
         }
@@ -142,6 +161,12 @@ void print_object(const Al_Object* object) {
 
             break;
         }
+        case okEnvironment: {
+            printf("#<Environment %p | $parent = %p>",
+                object->as_env,
+                object->as_env->parent != nullptr ? object->as_env->parent : (void*)nullptr);
+            break;
+        }
         default:
             str_print(string_of_object_kind(object->kind));
             die("Not done in print object");
@@ -150,13 +175,14 @@ void print_object(const Al_Object* object) {
 
 String* string_of_object_kind(const Al_Object_Kind kind) {
     switch (kind) {
-        case okInt:      return str_of_cstr("Int");
-        case okFloat:    return str_of_cstr("Float");
-        case okBool:     return str_of_cstr("Bool");
-        case okString:   return str_of_cstr("String");
-        case okBuiltin:  return str_of_cstr("Builtin");
-        case okFunction: return str_of_cstr("Function");
-        case okVector:   return str_of_cstr("Vector");
+        case okInt:         return str_of_cstr("Int");
+        case okFloat:       return str_of_cstr("Float");
+        case okBool:        return str_of_cstr("Bool");
+        case okString:      return str_of_cstr("String");
+        case okBuiltin:     return str_of_cstr("Builtin");
+        case okFunction:    return str_of_cstr("Function");
+        case okVector:      return str_of_cstr("Vector");
+        case okEnvironment: return str_of_cstr("Environment");
         default: die("Not done in string_of_object_kind");
     }
 }
@@ -175,6 +201,11 @@ String* string_of_object(const Al_Object* object) {
         case okInt: {
             String* result = str_of_cap(8);
             str_appendf(result, "%ld", object->as_int);
+            return result;
+        }
+        case okFloat: {
+            String* result = str_of_cap(8);
+            str_appendf(result, "%f", object->as_float);
             return result;
         }
         case okString: {
@@ -211,6 +242,47 @@ String* string_of_object(const Al_Object* object) {
             }
             return result;
         }
+        case okEnvironment: {
+            String* result = str_of_cap(64);
+            str_appendf(result, "#<Environment %p | $parent = %p>",
+                object->as_env,
+                object->as_env->parent != nullptr ? object->as_env->parent : (void*)nullptr);
+            return result;
+        }
         default: die("Not done in string_of_object_kind");
     }
 }
+bool obj_eq(const Al_Object* const restrict a, const Al_Object* const restrict b) {
+    if (a == b) return true;
+    if (a->kind!=b->kind) return false;
+    switch (a->kind) {
+        case okInt: {
+            return a->as_int == b->as_int;
+        }
+        case okFloat: {
+            return a->as_float == b->as_float;
+        }
+        case okBool: {
+            return a->as_bool == b->as_bool;
+        }
+        case okChar: {
+            return a->as_char == b->as_char;
+        }
+        case okBuiltin: {
+            return a->as_builtin.builtin == b->as_builtin.builtin;
+        }
+        case okFunction: {
+            return a->as_function->routine_ast == b->as_function->routine_ast;
+        }
+        case okString: {
+            if (a->as_string->len!=b->as_string->len) return false;
+            return memcmp(a->as_string->chars, b->as_string->chars, a->as_string->len) == 0;
+        }
+        case okVector:
+            return a == b;
+        case okEnvironment:
+            return a == b;
+        default: die("im not done here yet!");
+    }
+}
+

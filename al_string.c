@@ -70,7 +70,22 @@ s64 str_append_cstr(String* restrict str, const char* cstr) {
     }
     memcpy(str->chars + str->len, cstr, cstr_len);
     str->len += cstr_len;
-    return (s64)str->len;
+    return str->len;
+}
+
+s64 str_append(String* a, String* b) {
+    const size_t min_cap = a->len + b->len;
+    if (min_cap > a->cap) {
+        size_t new_cap = a->cap > 0 ? a->cap * 2 : STRING_INITIAL_CAP;
+        if (min_cap > new_cap) new_cap = min_cap;
+        char* new_chars = realloc(a->chars, new_cap);
+        if (!new_chars) return -1;
+        a->chars = new_chars;
+        a->cap   = new_cap;
+    }
+    memcpy(a->chars + a->len, b->chars, b->len);
+    a->len += b->len;
+    return a->len;
 }
 
 s64 str_append_bytes_unsafe(String* restrict str, const char* bytes, const size_t n_bytes) {
