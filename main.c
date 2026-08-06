@@ -432,6 +432,21 @@ static Al_Object* bexport(Eval_Runtime* eval, Environment* scope, AST_Node* args
 }
 
 
+static Al_Object* bmod(Eval_Runtime* eval, Environment* scope, AST_Node* args) {
+    const Vector* params = args->as_param_list;
+    assert(params && params->len == 2 && "builtin `mod` expects 2 parameters");
+    Al_Object* arg1 = eval_ast_in(eval, scope, params->data[0]);
+    Al_Object* arg2 = eval_ast_in(eval, scope, params->data[1]);
+    assert(arg1->kind == okInt && arg2->kind == okInt && "`mod` requires its arguments to be integers as of now");
+    Al_Object* result = new(Al_Object);
+    result->kind = okInt;
+    result->ref_count = 1;
+    assert(arg2->as_int != 0lu && "Division by zero defect");
+    result->as_int = arg1->as_int % arg2->as_int;
+    obj_release(arg1);
+    obj_release(arg2);
+    return result;
+}
 
 
 static void run_repl(Eval_Runtime* eval) {
@@ -498,8 +513,8 @@ int main(const int argc, char** argv) {
     register_builtin(&eval, "slurp",     bslurpfile);
     register_builtin(&eval, "strcopy",   bstrcopy);
     register_builtin(&eval, "splitLines",bsplitlines);
-    register_builtin(&eval,  "export",   bexport);
-
+    register_builtin(&eval, "export",    bexport);
+    register_builtin(&eval, "mod",       bmod);
     if (argc == 1) {
         run_repl(&eval);
     } else if (argc == 2) {

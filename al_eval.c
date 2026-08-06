@@ -149,9 +149,9 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             }
 
             const AST_Node* definition_ast = func_obj->as_function->routine_ast;
-            const Vector* param_names = definition_ast->as_func_def.params;
-            const Vector* args_exprs = funcall.func_params->as_param_list;
-            const size_t provided_args = args_exprs ? args_exprs->len : 0;
+            const Vector* param_names      = definition_ast->as_func_def.params;
+            const Vector* args_exprs       = funcall.func_params->as_param_list;
+            const size_t provided_args     = args_exprs ? args_exprs->len : 0;
 
             if (provided_args != param_names->len) {
                 die("Runtime Error: Arity mismatch during routine invocation.");
@@ -301,8 +301,7 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
                         }
                     }
                 }
-                if (result == nullptr)
-                    result = (Al_Object*)&FALSE;
+                if (result == nullptr) result = (Al_Object*)&FALSE;
                 obj_release(right);
                 obj_release(left);
                 return result;
@@ -516,12 +515,19 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
             const Dot_Access_Node dotop = ast->as_dot_access;
             Al_Object* receiver = eval_ast_in(eval, scope, dotop.receiver);
             assert(receiver->kind == okEnvironment && "Receiver of a dot operation must be an environment!");
-            obj_release(receiver);
             Al_Object* result = env_lookup_symbol(receiver->as_env, dotop.message);
             if (!result) {
                 die("No member found on that object"); // temp shity error msg
             }
+            obj_release(receiver);
             return obj_retain(result);
+        }
+        case nkUsingExpr: {
+            const Using_Expr_Node expr = ast->as_using_expr;
+            Al_Object* env_obj = eval_ast_in(eval, scope, expr.env);
+            Al_Object* result = eval_ast_in(eval, env_obj->as_env, expr.body);
+            obj_release(env_obj);
+            return result;
         }
         default: {
             die("Unimplemented case in eval_ast");

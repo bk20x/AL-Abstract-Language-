@@ -113,9 +113,6 @@ void lex_symbol(Lexer* lexer) {
 
     if (len == 3 && memcmp(sym_view.buf, "var", len) == 0) {
         lexer->token = (Token){.kind = tkVar};
-    }
-    else if (len == 6 && memcmp(sym_view.buf, "define", len) == 0) {
-        lexer->token = (Token){.kind = tkDefine};
     } else if (len == 2 && memcmp(sym_view.buf, "if", len) == 0) {
         lexer->token = (Token){.kind = tkIf};
     } else if (len == 4 && memcmp(sym_view.buf, "else", len) == 0) {
@@ -131,6 +128,8 @@ void lex_symbol(Lexer* lexer) {
         lexer->token = (Token){.kind = tkBoolLit, .bool_lit_val = true};
     } else if (len == 5 && memcmp(sym_view.buf, "false", len) == 0) {
         lexer->token = (Token){.kind = tkBoolLit, .bool_lit_val = false};
+    } else if (len == 5 && memcmp(sym_view.buf, "using", len) == 0) {
+        lexer->token = (Token){.kind = tkUsing};
     } else {
         lexer->token = (Token){
             .kind     = tkSymbol,

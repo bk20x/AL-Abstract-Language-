@@ -12,7 +12,8 @@ static AST_Node* parse_basic(Reader* reader);
 static AST_Node* parse_funcall(Reader*, AST_Node*);
 static AST_Node* parse_funcall_param_list(Reader*);
 static AST_Node* parse_var_declaration(Reader*);
-static AST_Node* parse_immu_declaration(Reader*);
+// static AST_Node* parse_immu_declaration(Reader*);
+
 Reader* init_reader() {
     Reader* result = new(Reader);
     Lexer*  lexer  = init_lexer();
@@ -174,6 +175,7 @@ static AST_Node* parse_var_declaration(Reader* reader) {
     return result;
 }
 
+/*
 static AST_Node* parse_immu_declaration(Reader* reader) {
     next_token(reader->lexer); // eat define
     assert(reader->lexer->token.kind == tkSymbol && "Expected symbol after `define`");
@@ -195,7 +197,7 @@ static AST_Node* parse_immu_declaration(Reader* reader) {
         }
     };
     return result;
-}
+}*/
 
 
 static AST_Node* parse_funcall_param_list(Reader* reader) {
@@ -246,7 +248,6 @@ static AST_Node* parse_funcall_param_list(Reader* reader) {
 
 
 static AST_Node* parse_routine_definition(Reader* reader) {
-    assert(reader->lexer->token.kind == tkRout);
     next_token(reader->lexer); // eat '%'
 
     assert(reader->lexer->token.kind == tkSymbol && "Expected routine identifier name after '%'");
@@ -290,7 +291,6 @@ static AST_Node* parse_routine_definition(Reader* reader) {
     return result;
 }
 static AST_Node* parse_if_expression(Reader* reader) {
-    assert(reader->lexer->token.kind == tkIf);
     next_token(reader->lexer); // eat 'if'
 
     AST_Node* cond_node = parse_expr(reader, 0);
@@ -325,7 +325,6 @@ static AST_Node* parse_if_expression(Reader* reader) {
 }
 
 static AST_Node* parse_for_loop(Reader* reader) {
-    assert(reader->lexer->token.kind == tkFor);
     next_token(reader->lexer); // eat 'for'
 
     // get the name of the itervar, later i wanna have multiple values like `for idx, x in xs {...}`
@@ -356,16 +355,29 @@ static AST_Node* parse_for_loop(Reader* reader) {
     return result;
 }
 
+static AST_Node* parse_using_expression(Reader* reader) {
+    next_token(reader->lexer); // eat `using`
+    AST_Node* the_thing_we_are_using = read(reader);
+    AST_Node* body = read(reader);
+    // assert ... blah. lazy rn
+    AST_Node* result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+    result->kind = nkUsingExpr;
+    result->as_using_expr.env  = the_thing_we_are_using;
+    result->as_using_expr.body = body;
+    return result;
+}
+
+
 static AST_Node* parse_basic(Reader* reader) {
-    AST_Node* base_node = nullptr;
+    AST_Node* result = nullptr;
 
     switch (reader->lexer->token.kind) {
         case tkVar: {
             return parse_var_declaration(reader);
         }
-        case tkDefine: {
+       /* case tkDefine: {
             return parse_immu_declaration(reader);
-        }
+        }*/
         case tkRout: {
             return parse_routine_definition(reader);
         }
@@ -375,41 +387,44 @@ static AST_Node* parse_basic(Reader* reader) {
         case tkFor: {
             return parse_for_loop(reader);
         }
+        case tkUsing: {
+            return parse_using_expression(reader);
+        }
         case tkSymbol: {
             const String_View sym_view = reader->lexer->token.view_val;
             next_token(reader->lexer); // eat symbol
 
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            *base_node = (AST_Node) {
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            *result = (AST_Node) {
                 .kind      = nkSymLit,
                 .as_symbol = get_symbol_if_interned_or_alloc_and_intern_it(reader, &sym_view)
             };
             break;
         }
         case tkInt: {
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            base_node->kind = nkIntLit;
-            base_node->as_int_lit = reader->lexer->token.int_val;
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            result->kind = nkIntLit;
+            result->as_int_lit = reader->lexer->token.int_val;
             next_token(reader->lexer);
             break;
         }
         case tkFloat: {
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            base_node->kind = nkFloatLit;
-            base_node->as_float_lit = reader->lexer->token.flt_val;
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            result->kind = nkFloatLit;
+            result->as_float_lit = reader->lexer->token.flt_val;
             next_token(reader->lexer);
             break;
         }
         case tkBoolLit: {
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            base_node->kind = nkBoolLit;
-            base_node->as_bool_lit = reader->lexer->token.bool_lit_val;
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            result->kind = nkBoolLit;
+            result->as_bool_lit = reader->lexer->token.bool_lit_val;
             next_token(reader->lexer);
             break;
         }
         case tkString: {
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            base_node->kind = nkStrLit;
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            result->kind = nkStrLit;
 
             const char* src_buf = reader->lexer->token.view_val.buf;
             const size_t src_len = reader->lexer->token.view_val.len;
@@ -435,14 +450,14 @@ static AST_Node* parse_basic(Reader* reader) {
                     str_append_bytes_unsafe(result_strlit, &src_buf[i], 1);
                 }
             }
-            base_node->as_str_lit = result_strlit;
+            result->as_str_lit = result_strlit;
             next_token(reader->lexer);
             break;
         }
         case tkChar: {
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            base_node->kind = nkCharLit;
-            base_node->as_char_lit = reader->lexer->token.chr_val;
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            result->kind = nkCharLit;
+            result->as_char_lit = reader->lexer->token.chr_val;
             next_token(reader->lexer);
             break;
         }
@@ -456,9 +471,9 @@ static AST_Node* parse_basic(Reader* reader) {
             assert(reader->lexer->token.kind == tkRBrace); // eat '}'
             next_token(reader->lexer);
 
-            base_node = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
-            base_node->kind = nkBlockLit;
-            base_node->as_block_lit = stmts;
+            result = alloc_from_elastic_fixed_size_pool(&reader->ast_pool);
+            result->kind = nkBlockLit;
+            result->as_block_lit = stmts;
             break;
         }
         default: {
@@ -468,8 +483,8 @@ static AST_Node* parse_basic(Reader* reader) {
         }
     }
 
-    if (base_node != nullptr) {
-        return parse_postfix_chains(reader, base_node);
+    if (result != nullptr) {
+        return parse_postfix_chains(reader, result);
     }
     return nullptr;
 }

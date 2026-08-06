@@ -69,6 +69,9 @@ void destroy_pooled_ast(const AST_Node* node) {
         case nkRangeExpr: {
             break;
         }
+        case nkUsingExpr: {
+            break;
+        }
         case nkDotAccess: {
             break;
         }
