@@ -525,7 +525,7 @@ Al_Object* eval_ast_in(Eval_Runtime* eval, Environment* scope, AST_Node* ast) {
         case nkUsingExpr: {
             const Using_Expr_Node expr = ast->as_using_expr;
             Al_Object* env_obj = eval_ast_in(eval, scope, expr.env);
-            Al_Object* result = eval_ast_in(eval, env_obj->as_env, expr.body);
+            Al_Object* result  = eval_ast_in(eval, env_obj->as_env, expr.body);
             obj_release(env_obj);
             return result;
         }
